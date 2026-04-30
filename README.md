@@ -18,7 +18,7 @@ No more tab juggling, channel switching, or missing rewards — just set it, for
 
 ## ✨ Features
 
-- 🚀 **Streamless Mining** — Earn drops without streaming video (save bandwidth)
+- 🚀 **Streamless Mining** — Earn drops without streaming video by sending Twitch GraphQL watch events
 - 🔍 **Automatic Campaign Discovery** — Detects new drop events automatically
 - ⚙️ **Auto Channel Switching** — Always mines the best available stream
 - 💾 **Persistent Login** — OAuth login saved via cookies
@@ -72,7 +72,7 @@ Visit 👉 **<http://localhost:8080>**
 1. Open `http://localhost:8080`
 2. Login with your Twitch account (OAuth device flow)
 3. The miner auto-fetches available campaigns
-4. Select games you want to farm → click **Reload**
+4. Select games you want to farm, or type a custom game and click **Add Game** → click **Reload**
 5. TDM starts mining drops automatically 🎉
 
 📝 **Tip:**  

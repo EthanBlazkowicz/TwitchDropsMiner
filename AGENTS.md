@@ -146,6 +146,7 @@ lang/                # Translation JSON files (19 languages)
 **src/config/settings.py** - Application settings:
 
 - Games to watch list (auto-populated from available campaigns if empty)
+- Games can also be added manually from the web settings search box
 - Connection quality multiplier
 - Language selection
 - Proxy support (including verification)
@@ -174,16 +175,16 @@ lang/                # Translation JSON files (19 languages)
 
 ### Drop Mining Mechanism
 
-The application sends periodic "watch" payloads to a spade URL every ~20 seconds:
+The application sends periodic "watch" payloads through Twitch GraphQL `sendSpadeEvents`:
 
-- Payload contains minute-watched events with channel/broadcast IDs
+- Payload contains gzip/base64-encoded minute-watched events with channel/broadcast IDs
 - Twitch reports progress via websocket (User.Drops topic)
 - If websocket updates stop, fallback to GQL CurrentDrop query
 - Extrapolation via "bump minutes" when no updates received
 
 ### GraphQL Operations
 
-Defined in `src/config/operations.py` as `GQL_OPERATIONS`:
+Persisted operations are defined in `src/config/operations.py` as `GQL_OPERATIONS`; raw GraphQL payloads such as `sendSpadeEvents` use `GQLQuery`:
 
 - **Inventory** - Fetch in-progress campaigns and claimed benefits
 - **Campaigns** - List available active/upcoming campaigns
