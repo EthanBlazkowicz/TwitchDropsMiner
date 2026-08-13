@@ -152,7 +152,8 @@ lang/                # Translation JSON files (19 languages)
 - Proxy support (including verification)
 - Logging and dump flags from command-line arguments
 - Persistence to JSON file (`settings.json`) in DATA_DIR
-- Inventory filters (Status, Benefit Type, Game Search)
+- Inventory filters (Status, Benefit Type, Game Search); Active/Upcoming/Expired use
+  OR semantics, Not Linked narrows the result, and Finished opts claimed campaigns in
 
 ### State Machine Flow
 
@@ -309,6 +310,7 @@ The application requires:
 - Python 3.12+
 - Virtual environment at `env/` (must be activated before running commands)
 - Dependencies from `pyproject.toml` (includes FastAPI, uvicorn, Socket.IO)
+- Node.js 24 for frontend behavior tests
 
 Docker deployment:
 
@@ -330,14 +332,17 @@ The project includes a test suite in the `tests/` directory:
 source env/bin/activate && python -m pytest tests/
 ```
 
-The suite covers settings and proxy behavior, API filtering, GraphQL watch events,
-batched channel discovery, translation consistency, frontend DOM safety, and contributor
-README automation.
+The suite covers settings and proxy behavior, inventory-filter behavior, API filtering,
+GraphQL watch events, batched channel discovery, translation consistency, frontend DOM
+safety, and contributor README automation. Inventory-filter behavior tests use Node.js;
+the validation workflow provisions Node 24 before running pytest. It also runs the release
+script contract tests under `.github/scripts/test/`.
 
 ### Continuous Integration
 
 - `.github/workflows/validation.yml` runs Ruff, Mypy, the Python test suite, language
-  JSON validation, and Docker build validation for pull requests and pushes to `main`.
+  JSON validation, `uv lock --check`, release-script tests, and Docker build validation
+  for pull requests and pushes to `main`.
 - `.github/workflows/contributors.yml` credits the human author of each pull request
   merged into `main`, including linked pull request numbers in the alphabetically sorted
   Contributors table in `README.md`.
@@ -347,6 +352,9 @@ README automation.
 - Keep the contributor table header and the `<!-- contributors:start -->` and
   `<!-- contributors:end -->` markers in `README.md`; the updater fails closed if the
   table header or either marker is missing, duplicated, or malformed.
+- `.github/workflows/version-release.yml` is the release entry point. It must provision
+  `uv`, update `src/version.py`, `pyproject.toml`, and `uv.lock` together, and validate all
+  three before creating a release branch or tag.
 
 
 ### Manual Testing
