@@ -64,12 +64,12 @@ src/
 ├── version.py       # Version string
 └── __main__.py      # Entry point
 
-lang/                # Translation JSON files (19 languages)
+lang/                # Translation JSON files (20 languages)
 ├── English.json     # Default/fallback translations
 ├── Español.json
 ├── Français.json
 ├── Deutsch.json
-└── ...              # 15 more languages
+└── ...              # 16 more languages
 ```
 
 ### Core Components
@@ -131,10 +131,17 @@ lang/                # Translation JSON files (19 languages)
 
 **src/web/app.py** - FastAPI application:
 
-- REST API endpoints: `/api/status`, `/api/channels`, `/api/campaigns`, `/api/settings`, `/api/login`, `/api/oauth/confirm`, `/api/reload`, `/api/close`, `/api/version`
+- REST API endpoints: `/api/status`, `/api/channels`, `/api/campaigns`, `/api/settings`, `/api/login`, `/api/oauth/confirm`, `/api/reload`, `/api/cache/clear`, `/api/close`, `/api/version`
 - Socket.IO server for real-time bi-directional communication
 - Serves static web frontend from `web/` directory
 - Integrates with WebGUIManager via `set_managers()`
+- The Settings **Clear All Cache** action discards local campaign, channel, and other
+  derived miner state, preserves OAuth login and settings, and then reloads from Twitch.
+  It is a recovery and diagnostic action, not a correction for Twitch campaign metadata.
+- `serve_index()` replaces the `__APP_VERSION__` placeholder in local CSS/JavaScript URLs
+  with the application version and serves `/` with `Cache-Control: no-cache`
+- Any `app.js` or `styles.css` change requires an application version bump through the release
+  workflow before deployment so existing clients receive a new asset cache key
 
 **src/websocket/pool.py** - WebSocket management:
 
@@ -152,8 +159,23 @@ lang/                # Translation JSON files (19 languages)
 - Proxy support (including verification)
 - Logging and dump flags from command-line arguments
 - Persistence to JSON file (`settings.json`) in DATA_DIR
+- Drop-name ignore list (`drop_name_blacklist`), empty by default. Entries are literal,
+  case-insensitive substrings entered one per line; whitespace and blanks are removed and
+  duplicates are casefolded while preserving the first spelling/order.
 - Inventory filters (Status, Benefit Type, Game Search); Active/Upcoming/Expired use
-  OR semantics, Not Linked narrows the result, and Finished opts claimed campaigns in
+  OR semantics, Not Linked narrows the result, and Finished opts claimed campaigns in.
+  Zero-minute subscription rewards are omitted from Inventory and Wanted Drops Queue;
+  individually expired and non-mineable rewards are omitted from the queue without hiding
+  upcoming or sequential rewards; successful claims refresh the queue immediately; the
+  actively watched channel remains visible while game settings are changing
+- Consecutive identical no-active-campaign console prompts are collapsed until another
+  console message appears
+
+Drop-name ignore policy is dependency-aware: a matching unclaimed drop and its dependent
+branches are ignored dynamically. Prerequisite-only branches with no mineable reward are
+skipped, while shared prerequisites required by an allowed reward remain mineable. Ignored
+and skipped drops are never counted as claimed. Twitch can still award simultaneous
+progress to an ignored drop while the miner intentionally targets another reward.
 
 ### State Machine Flow
 
@@ -216,7 +238,7 @@ Runs in background to trigger:
 
 **Architecture:**
 
-- All translations stored as JSON files in `lang/` directory (19 languages supported)
+- All translations stored as JSON files in `lang/` directory (20 languages supported)
 - English (`lang/English.json`) is the single source of truth and fallback language
 - Strongly typed with TypedDict schema defined in `src/i18n/translator.py`
 - Translator class (`src/i18n/translator.py`) handles language loading and fallback
@@ -225,7 +247,7 @@ Runs in background to trigger:
 **Supported Languages:**
 
 - English, Dansk (Danish), Deutsch (German), Español (Spanish), Français (French)
-- Indonesian, Italiano (Italian), Nederlandse (Dutch), Polski (Polish), Português (Portuguese)
+- Magyar (Hungarian), Indonesian, Italiano (Italian), Nederlandse (Dutch), Polski (Polish), Português (Portuguese)
 - Română (Romanian), Türkçe (Turkish), Čeština (Czech)
 - Русский (Russian), Українська (Ukrainian), العربية (Arabic)
 - 日本語 (Japanese), 简体中文 (Simplified Chinese), 繁體中文 (Traditional Chinese)
@@ -271,7 +293,7 @@ login_text = _.t["login"]["status"]["logged_in"]  # Returns "Logged in"
 - **src/i18n/** - Internationalization package with TypedDict schema and Translator class
   - **translator.py** - Translator class with typed translation schema (Translation TypedDict)
   - **__init__.py** - Exports translation types and `_` (Translator instance)
-- **lang/** - Translation JSON files for 19 languages (English.json is the single source of truth)
+- **lang/** - Translation JSON files for 20 languages (English.json is the single source of truth)
 - **src/version.py** - Version string
 - **src/web/app.py** - FastAPI application with REST API and Socket.IO
 - **src/web/managers/cache.py** - ImageCache for campaign artwork caching
@@ -333,16 +355,27 @@ source env/bin/activate && python -m pytest tests/
 ```
 
 The suite covers settings and proxy behavior, inventory-filter behavior, API filtering,
-GraphQL watch events, batched channel discovery, translation consistency, frontend DOM
-safety, and contributor README automation. Inventory-filter behavior tests use Node.js;
+GraphQL watch events, batched channel discovery, full-locale translation schema and
+placeholder consistency, frontend DOM safety, case-insensitive channel filtering,
+watch-drop count and expiry semantics, immediate claim refresh behavior, consecutive
+no-campaign console collapsing, and contributor README automation. Frontend behavior tests
+share their JavaScript extraction helper and use Node.js;
 the validation workflow provisions Node 24 before running pytest. It also runs the release
-script contract tests under `.github/scripts/test/`.
+script contract tests under `.github/scripts/test/`. Ignore-list coverage includes
+normalization and settings persistence, dependency pruning, the combined expiry/ignore
+Wanted Queue guard, watch selection, truthful ignored/skipped inventory state, translated
+placeholder parity, and frontend rendering. Changes to `web/static/app.js` or
+`web/static/styles.css` still require the release workflow to bump the application version
+and asset cache key before deployment.
 
 ### Continuous Integration
 
 - `.github/workflows/validation.yml` runs Ruff, Mypy, the Python test suite, language
   JSON validation, `uv lock --check`, release-script tests, and Docker build validation
   for pull requests and pushes to `main`.
+- Docker validation and release workflows pin the Node-24-native Docker Buildx v4.3.0
+  and Build Push v7.3.0 action commits. Update both workflows together when changing
+  either action so validation and release builds use the same trusted versions.
 - `.github/workflows/contributors.yml` credits the human author of each pull request
   merged into `main`, including linked pull request numbers in the alphabetically sorted
   Contributors table in `README.md`.
@@ -377,7 +410,7 @@ The application uses a web-based interface accessible via browser:
 
 **src/web/app.py** - FastAPI application:
 
-- REST API endpoints: `/api/status`, `/api/channels`, `/api/campaigns`, `/api/settings`, `/api/login`, `/api/oauth/confirm`, `/api/reload`, `/api/close`, `/api/version`
+- REST API endpoints: `/api/status`, `/api/channels`, `/api/campaigns`, `/api/settings`, `/api/login`, `/api/oauth/confirm`, `/api/reload`, `/api/cache/clear`, `/api/close`, `/api/version`
 - Socket.IO server for real-time bi-directional communication
 - Serves static web frontend from `web/` directory
 - Integrates with WebGUIManager via `set_managers()`

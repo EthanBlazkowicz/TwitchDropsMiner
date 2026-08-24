@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import socketio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -71,6 +71,7 @@ class ChannelSelectRequest(BaseModel):
 
 class SettingsUpdate(BaseModel):
     games_to_watch: list[str] | None = None
+    drop_name_blacklist: list[str] | None = None
     dark_mode: bool | None = None
     language: str | None = None
     proxy: str | None = None
@@ -98,7 +99,8 @@ async def serve_index():
         f"Looking for web files: __file__={__file__}, web_dir={web_dir}, index_file={index_file}, exists={index_file.exists()}"
     )
     if index_file.exists():
-        return FileResponse(index_file)
+        content = index_file.read_text(encoding="utf-8").replace("__APP_VERSION__", __version__)
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-cache"})
     return HTMLResponse(
         content=f"<h1>Twitch Drops Miner</h1><p>Web interface files not found. Please check installation.</p><p>Debug: Looking for {index_file}</p>",
         status_code=500,
@@ -207,9 +209,9 @@ async def update_settings(settings: SettingsUpdate):
     if not gui_manager:
         raise HTTPException(status_code=503, detail="GUI not initialized")
 
-    settings_dict = settings.dict(exclude_unset=True)
-    gui_manager.settings.update_settings(settings_dict)
-    return {"success": True, "settings": gui_manager.settings.get_settings()}
+    settings_dict = settings.model_dump(exclude_unset=True)
+    updated_settings = gui_manager.settings.update_settings(settings_dict)
+    return {"success": True, "settings": updated_settings}
 
 
 @app.post("/api/settings/verify-proxy")
@@ -309,13 +311,23 @@ async def confirm_oauth():
 
 @app.post("/api/reload")
 async def trigger_reload():
-    """Trigger application reload"""
+    """Fetch fresh campaign and inventory data."""
     if not twitch_client:
         raise HTTPException(status_code=503, detail="Twitch client not initialized")
 
-    from src.config import State
+    if not twitch_client.request_inventory_refresh():
+        raise HTTPException(status_code=409, detail="Twitch client is shutting down")
+    return {"success": True}
 
-    twitch_client.change_state(State.INVENTORY_FETCH)
+
+@app.post("/api/cache/clear")
+async def clear_all_cache():
+    """Clear local derived miner state and fetch fresh Twitch data."""
+    if not twitch_client:
+        raise HTTPException(status_code=503, detail="Twitch client not initialized")
+
+    if not twitch_client.request_inventory_refresh(clear_cache=True):
+        raise HTTPException(status_code=409, detail="Twitch client is shutting down")
     return {"success": True}
 
 
@@ -386,9 +398,7 @@ async def request_login(sid):
 async def request_reload(sid):
     """Client requested application reload"""
     if twitch_client:
-        from src.config import State
-
-        twitch_client.change_state(State.INVENTORY_FETCH)
+        twitch_client.request_inventory_refresh()
 
 
 @sio.event

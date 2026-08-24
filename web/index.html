@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twitch Drops Miner</title>
     <link rel="icon" type="image/png" href="/static/favicon.png">
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=__APP_VERSION__">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 
@@ -235,6 +235,13 @@
                 </section>
 
                 <section class="settings-section">
+                    <h2 id="settings-drop-blacklist-header">Ignored Drop Keywords</h2>
+                    <p id="settings-drop-blacklist-help" class="help-text">Enter one keyword per line. Matching
+                        drops and their dependent branches will not be mined.</p>
+                    <textarea id="drop-name-blacklist" rows="5" placeholder="(JP)&#10;[KR]&#10;Japan"></textarea>
+                </section>
+
+                <section class="settings-section">
                     <h2 id="settings-games-header">Games to Watch</h2>
                     <p id="settings-games-help" class="help-text">Select games to watch. Order matters - drag to
                         reorder
@@ -266,8 +273,11 @@
                 <section class="settings-section">
                     <h2 id="settings-actions-header">Actions</h2>
                     <div class="settings-actions">
-                        <button id="reload-btn" class="action-button">Reload</button>
+                        <button id="reload-btn" class="action-button" type="button">Reload</button>
+                        <button id="clear-cache-btn" class="action-button" type="button">Clear All Cache</button>
                     </div>
+                    <p id="clear-cache-help" class="help-text">Clears local campaign and channel data, keeps
+                        your login and settings, then reloads from Twitch.</p>
                 </section>
             </div>
         </div>
@@ -328,7 +338,7 @@
         </footer>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=__APP_VERSION__"></script>
 </body>
 
 </html>
