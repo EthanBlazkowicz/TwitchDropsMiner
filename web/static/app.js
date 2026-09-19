@@ -12,6 +12,91 @@ const state = {
     translations: {}  // Store current translations
 };
 
+// ==================== UI Utilities ====================
+
+function showToast(message, type = 'info') {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    toastContainer.appendChild(toast);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    });
+
+    // Remove after 5 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+function showConfirmModal(message, onConfirm) {
+    if (document.querySelector('.modal-overlay')) return;
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal-box';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'confirmation-message');
+    const text = document.createElement('div');
+    text.id = 'confirmation-message';
+    text.className = 'modal-text';
+    text.textContent = message;
+    const btnContainer = document.createElement('div');
+    btnContainer.className = 'modal-buttons';
+    const t = state.translations;
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'secondary-btn';
+    cancelBtn.textContent = t.gui?.settings?.cancel_btn || 'Cancel';
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'primary-btn';
+    confirmBtn.textContent = t.gui?.settings?.confirm_btn || 'Confirm';
+    btnContainer.appendChild(cancelBtn);
+    btnContainer.appendChild(confirmBtn);
+    modal.appendChild(text);
+    modal.appendChild(btnContainer);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    cancelBtn.focus();
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+    });
+    let closed = false;
+    const close = (confirmed = false) => {
+        if (closed) return;
+        closed = true;
+        overlay.remove();
+        if (previousFocus?.isConnected) previousFocus.focus();
+        if (confirmed) onConfirm();
+    };
+    cancelBtn.onclick = () => close();
+    confirmBtn.onclick = () => close(true);
+    overlay.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            close();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            (document.activeElement === cancelBtn ? confirmBtn : cancelBtn).focus();
+        }
+    });
+}
+
 // ==================== Version Checking ====================
 
 async function fetchAndDisplayVersion() {
@@ -1111,6 +1196,18 @@ function updateSettingsUI(settings) {
         proxyIndicator.title = proxyUrl ? `Proxy active: ${proxyUrl}` : 'Proxy disabled';
     }
 
+    // Populate Telegram fields if present in settings (the server never
+    // echoes the stored bot token; it returns a mask placeholder instead).
+    const botTokenInput = document.getElementById('telegram-bot-token');
+    const chatIdInput = document.getElementById('telegram-chat-id');
+    if (botTokenInput) {
+        botTokenInput.value = '';
+        if (settings.telegram_configured) {
+            botTokenInput.placeholder = '••••••••';
+        }
+    }
+    if (chatIdInput) chatIdInput.value = settings.telegram_chat_id || '';
+
     // Update language dropdown if we have the current language
     if (settings.language) {
         const languageSelect = document.getElementById('language');
@@ -1246,12 +1343,35 @@ function renderSelectedGames(games) {
         div.className = 'sortable-item';
         div.draggable = true;
         div.dataset.game = game;
+        const priorityInput = makeElement('input', {
+            type: 'number',
+            class: 'priority-input',
+            value: String(index + 1),
+            min: '1',
+            max: String(games.length),
+            'aria-label': (t.gui?.settings?.game_priority || 'Priority for {game}').replace('{game}', game)
+        });
+
         div.replaceChildren(
             makeElement('span', { class: 'drag-handle' }, '☰'),
-            makeElement('span', { class: 'priority-number' }, String(index + 1)),
+            priorityInput,
             makeElement('span', { class: 'game-name' }, game),
-            makeElement('button', { class: 'remove-btn' }, '✕'),
+            makeElement('button', {
+                class: 'remove-btn',
+                title: (t.gui?.settings?.remove_game || 'Remove {game}').replace('{game}', game),
+                'aria-label': (t.gui?.settings?.remove_game || 'Remove {game}').replace('{game}', game)
+            }, '✕')
         );
+
+        // Event listener for priority change
+        priorityInput.addEventListener('change', (e) => {
+            const priority = Number(e.target.value);
+            if (e.target.value.trim() && Number.isInteger(priority)) {
+                changeGamePriority(game, priority - 1);
+            } else {
+                e.target.value = String(index + 1); // Reset on invalid
+            }
+        });
 
         // Event listener for the delete button
         const removeBtn = div.querySelector('.remove-btn');
@@ -1376,6 +1496,25 @@ function toggleGameWatch(gameName, checked) {
     saveSettings();
 }
 
+function changeGamePriority(gameName, newIndex) {
+    if (!Number.isInteger(newIndex)) return;
+    const games = [...(state.settings.games_to_watch || [])];
+    const currentIndex = games.indexOf(gameName);
+
+    if (currentIndex > -1) {
+        games.splice(currentIndex, 1);
+
+        // Ensure newIndex is within bounds
+        newIndex = Math.max(0, Math.min(newIndex, games.length));
+        games.splice(newIndex, 0, gameName);
+
+        state.settings.games_to_watch = games;
+        renderGamesToWatch();
+        renderChannels();
+        saveSettings();
+    }
+}
+
 function removeGameFromWatch(gameName) {
     const games = state.settings.games_to_watch || [];
     const index = games.indexOf(gameName);
@@ -1389,48 +1528,103 @@ function removeGameFromWatch(gameName) {
 }
 
 function selectAllGames() {
-    state.settings.games_to_watch = Array.from(availableGames).sort();
+    const existing = state.settings.games_to_watch || [];
+    const selected = new Set(existing.map(game => game.toLowerCase()));
+    const newGames = Array.from(availableGames).sort().filter(game => {
+        const key = game.toLowerCase();
+        if (selected.has(key)) return false;
+        selected.add(key);
+        return true;
+    });
+    
+    state.settings.games_to_watch = [...existing, ...newGames];
     renderGamesToWatch();
     renderChannels();
     saveSettings();
 }
 
 function deselectAllGames() {
-    state.settings.games_to_watch = [];
-    renderGamesToWatch();
-    renderChannels();
-    saveSettings();
+    if (!state.settings.games_to_watch || state.settings.games_to_watch.length === 0) {
+        return;
+    }
+    
+    const t = state.translations;
+    const msg = t.gui?.settings?.deselect_all_warning || 'Are you sure you want to remove all games from your watch list?';
+    
+    showConfirmModal(msg, () => {
+        state.settings.games_to_watch = [];
+        renderGamesToWatch();
+        renderChannels();
+        saveSettings();
+    });
 }
 
 function addGameFromSearch() {
     const searchInput = document.getElementById('games-filter');
-    const gameName = searchInput.value.trim();
+    const searchLower = searchInput.value.trim().toLowerCase();
 
-    if (!gameName) {
+    if (!searchLower) {
+        return;
+    }
+
+    let gameToAdd = searchInput.value.trim();
+    let isManualAdd = true;
+    
+    // Find matching games from availableGames
+    const matches = Array.from(availableGames).filter(g => g.toLowerCase().includes(searchLower));
+    
+    // 1. Check for exact case-insensitive match
+    const exactMatch = matches.find(g => g.toLowerCase() === searchLower);
+    
+    if (exactMatch) {
+        gameToAdd = exactMatch;
+        isManualAdd = false;
+    } else if (matches.length === 1) {
+        // 2. Check for a single partial match
+        gameToAdd = matches[0];
+        isManualAdd = false;
+    } else if (matches.length > 1) {
+        // Multiple matches found and no exact match. Don't add to avoid ambiguity.
+        const t = state.translations;
+        const msg = t.gui?.settings?.multiple_games_found || 'Multiple games found for your search. Please be more specific.';
+        showToast(msg, 'warning');
         return;
     }
 
     const games = state.settings.games_to_watch || [];
     
-    // Check if already selected
-    if (games.includes(gameName)) {
+    // Check if already selected (case-insensitive)
+    if (games.some(g => g.toLowerCase() === gameToAdd.toLowerCase())) {
         searchInput.value = ''; // Clear input if already added
         renderGamesToWatch(); // Just re-render to clear any filtering state if needed
         return;
     }
 
-    // Add to selected games
-    games.push(gameName);
-    state.settings.games_to_watch = games;
+    const finishAdding = (gameName) => {
+        // Confirmation can outlive a settings update; append to the current list.
+        const current = state.settings.games_to_watch || [];
+        if (current.some(game => game.toLowerCase() === gameName.toLowerCase())) return;
+        state.settings.games_to_watch = [...current, gameName];
 
-    // Add to available games set so it shows up in lists
-    availableGames.add(gameName);
+        // Add to available games set so it shows up in lists
+        availableGames.add(gameName);
 
-    // Clear search and update UI
-    searchInput.value = '';
-    renderGamesToWatch();
-    renderChannels();
-    saveSettings();
+        // Clear search and update UI
+        searchInput.value = '';
+        renderGamesToWatch();
+        renderChannels();
+        saveSettings();
+    };
+
+    // Warn if adding manually
+    if (isManualAdd) {
+        const t = state.translations;
+        let msg = t.gui?.settings?.manual_game_warning || '\"{game}\" is not in the available campaign list. Add it to Games to Watch anyway?';
+        msg = msg.replace('{game}', gameToAdd);
+        showConfirmModal(msg, () => finishAdding(gameToAdd));
+    } else {
+        finishAdding(gameToAdd);
+    }
 }
 
 function flashTitle() {
@@ -1557,6 +1751,118 @@ async function verifyProxy() {
     }
 }
 
+async function testTelegramConnection() {
+    const botTokenInput = document.getElementById('telegram-bot-token');
+    const chatIdInput = document.getElementById('telegram-chat-id');
+    const resultDiv = document.getElementById('telegram-test-result');
+
+    if (!resultDiv) return;
+
+    const botToken = botTokenInput ? botTokenInput.value.trim() : '';
+    const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+    const tg = state.translations.gui?.settings?.telegram || {};
+
+    // Reset display
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'verify-result loading';
+    resultDiv.textContent = `${tg.test_connection || 'Test Connection'}…`;
+
+    if ((!botToken && !state.settings.telegram_configured) || !chatId) {
+        resultDiv.className = 'verify-result error';
+        resultDiv.textContent = tg.missing_credentials || 'Please enter a bot token and chat ID.';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/settings/test-telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegram_bot_token: botToken, telegram_chat_id: chatId })
+        });
+
+        if (!response.ok) {
+            throw new Error(`${tg.error || 'Telegram connection failed.'} (HTTP ${response.status})`);
+        }
+        const data = await response.json();
+
+        if (data.success) {
+            // A successful test does not guarantee that settings were saved.
+            await saveTelegramSettings(botToken, chatId);
+            resultDiv.className = 'verify-result success';
+            resultDiv.textContent = tg.success || '✓ Telegram connection successful!';
+        } else {
+            resultDiv.className = 'verify-result error';
+            resultDiv.textContent = tg.error || 'Telegram connection failed.';
+        }
+    } catch (error) {
+        resultDiv.className = 'verify-result error';
+        resultDiv.textContent = error.message || tg.error || 'Telegram connection failed.';
+    }
+}
+
+async function saveTelegramSettings(botToken, chatId) {
+    const settings = {
+        telegram_bot_token: botToken,
+        telegram_chat_id: chatId
+    };
+
+    const tg = state.translations.gui?.settings?.telegram || {};
+    const failureMessage = tg.save_error || 'Failed to save Telegram settings.';
+    let response;
+    let data;
+    try {
+        response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        data = await response.json();
+        if (!data.success || !data.settings) {
+            throw new Error(failureMessage);
+        }
+    } catch (error) {
+        const status = response && !response.ok ? ` (HTTP ${response.status})` : '';
+        throw new Error(`${failureMessage}${status}`);
+    }
+    updateSettingsUI(data.settings);
+}
+
+async function handleSaveTelegramClick() {
+    const botTokenInput = document.getElementById('telegram-bot-token');
+    const chatIdInput = document.getElementById('telegram-chat-id');
+    const resultDiv = document.getElementById('telegram-test-result');
+
+    if (!resultDiv) return;
+
+    const botToken = botTokenInput ? botTokenInput.value.trim() : '';
+    const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+    const tg = state.translations.gui?.settings?.telegram || {};
+
+    // Reset display
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'verify-result loading';
+    resultDiv.textContent = `${tg.save_settings || 'Save Settings'}…`;
+
+    // A blank token keeps the stored credential. Clearing the chat ID disables alerts.
+    if (!state.settings.telegram_configured && (!botToken || !chatId)) {
+        resultDiv.className = 'verify-result error';
+        resultDiv.textContent = tg.missing_credentials || 'Please enter a bot token and chat ID.';
+        return;
+    }
+
+    try {
+        await saveTelegramSettings(botToken, chatId);
+        resultDiv.className = 'verify-result success';
+        resultDiv.textContent = tg.saved || '✓ Settings saved successfully!';
+    } catch (error) {
+        resultDiv.className = 'verify-result error';
+        resultDiv.textContent = error.message || tg.save_error || 'Failed to save Telegram settings.';
+    }
+}
+
 function parseDropNameBlacklist(value) {
     return String(value || '')
         .split(/\r?\n/)
@@ -1647,16 +1953,19 @@ async function fetchAndApplyTranslations() {
 }
 
 function applyTranslations(t) {
+    translateHistory();
     // Update tab buttons
     const tabButtons = {
         'main': document.querySelector('[data-tab="main"]'),
         'inventory': document.querySelector('[data-tab="inventory"]'),
+        'history': document.querySelector('[data-tab="history"]'),
         'settings': document.querySelector('[data-tab="settings"]'),
         'help': document.querySelector('[data-tab="help"]')
     };
 
     if (tabButtons.main && t.gui?.tabs) tabButtons.main.textContent = t.gui.tabs.main;
     if (tabButtons.inventory && t.gui?.tabs) tabButtons.inventory.textContent = t.gui.tabs.inventory;
+    if (tabButtons.history && t.gui?.tabs) tabButtons.history.textContent = t.gui.tabs.history;
     if (tabButtons.settings && t.gui?.tabs) tabButtons.settings.textContent = t.gui.tabs.settings;
     if (tabButtons.help && t.gui?.tabs) tabButtons.help.textContent = t.gui.tabs.help;
 
@@ -1810,6 +2119,40 @@ function applyTranslations(t) {
         const reloadBtn = document.getElementById('reload-btn');
         if (reloadBtn) reloadBtn.textContent = t.gui.settings.reload_campaigns;
 
+        // Update Telegram Notifications section.
+        const tgTrans = (t.settings && t.settings.telegram) || (t.gui && t.gui.settings && t.gui.settings.telegram) || null;
+        if (tgTrans) {
+            const telegramSection = settingsTab.querySelector('.settings-section:has(#telegram-bot-token)');
+            if (telegramSection) {
+                const heading = telegramSection.querySelector('h2');
+                if (heading) heading.textContent = tgTrans.name || heading.textContent;
+
+                const description = telegramSection.querySelector('.help-text');
+                if (description) description.textContent = tgTrans.description || description.textContent;
+
+                const botTokenLabel = document.getElementById('settings-telegram-bot-token-label');
+                if (botTokenLabel) botTokenLabel.textContent = tgTrans.bot_token || botTokenLabel.textContent;
+
+                const chatIdLabel = document.getElementById('settings-telegram-chat-id-label');
+                if (chatIdLabel) chatIdLabel.textContent = tgTrans.chat_id || chatIdLabel.textContent;
+
+                const yourUserId = document.getElementById('settings-telegram-your-user-id');
+                if (yourUserId) yourUserId.textContent = tgTrans.your_user_id || yourUserId.textContent;
+
+                const fromBotFather = document.getElementById('settings-telegram-get-from-botfather');
+                if (fromBotFather) fromBotFather.textContent = tgTrans.get_from_botfather || fromBotFather.textContent;
+
+                const saveTelegramBtn = document.getElementById('save-telegram-btn');
+                if (saveTelegramBtn) saveTelegramBtn.textContent = tgTrans.save_settings || saveTelegramBtn.textContent;
+
+                const testTelegramBtn = document.getElementById('test-telegram-btn');
+                if (testTelegramBtn) testTelegramBtn.textContent = tgTrans.test_connection || testTelegramBtn.textContent;
+
+                const credentialsHelp = document.getElementById('settings-telegram-credentials-help');
+                if (credentialsHelp) credentialsHelp.textContent = tgTrans.credentials_help || credentialsHelp.textContent;
+            }
+        }
+
         const clearCacheBtn = document.getElementById('clear-cache-btn');
         if (clearCacheBtn) clearCacheBtn.textContent = t.gui.settings.clear_all_cache;
 
@@ -1836,7 +2179,7 @@ function applyTranslations(t) {
         const notesHeader = document.getElementById('help-notes-header');
         if (notesHeader) notesHeader.textContent = t.gui.help.important_notes || 'Important Notes';
 
-        // Update list items and links (keeping innerHTML approach for lists as they are dynamic content blocks)
+        // Build translated lists and allowlisted links with DOM nodes.
         const helpContent = helpTab.querySelector('.help-content');
         if (helpContent) {
             const howToItems = t.gui.help.how_to_use_items || [
@@ -1868,6 +2211,14 @@ function applyTranslations(t) {
                 makeHelpList('ul', featuresItems),
                 makeElement('h3', { id: 'help-notes-header' }, t.gui.help.important_notes || 'Important Notes'),
                 makeHelpList('ul', notesItems),
+                ...(function () {
+                    const tg = tgHelpSetup(t);
+                    return tg
+                        ? [makeElement('h3', { id: 'help-telegram-header' }, tg.title),
+                           makeElement('p', {}, tg.description),
+                           makeHelpList('ol', tg.steps)]
+                        : [];
+                })(),
                 makeElement('div', { class: 'help-links' }, '', el =>
                     el.appendChild(makeElement('a', { href: 'https://github.com/rangermix/TwitchDropsMiner', target: '_blank', rel: 'noopener noreferrer' }, t.gui.help.github_repo || 'GitHub Repository'))
                 ),
@@ -2016,6 +2367,11 @@ function switchTab(tabName) {
     // Show selected tab
     document.getElementById(`${tabName}-tab`).classList.add('active');
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+    // Lazy-load history data each time the History tab is opened
+    if (tabName === 'history') {
+        loadHistory();
+    }
 }
 
 // ==================== Event Listeners ====================
@@ -2068,8 +2424,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     document.getElementById('verify-proxy-btn').addEventListener('click', verifyProxy);
+    document.getElementById('test-telegram-btn').addEventListener('click', testTelegramConnection);
+    document.getElementById('save-telegram-btn').addEventListener('click', handleSaveTelegramClick);
     document.getElementById('reload-btn').addEventListener('click', reloadCampaigns);
     document.getElementById('clear-cache-btn').addEventListener('click', clearAllCache);
+
+    // History tab
+    document.getElementById('history-btn-filter')?.addEventListener('click', () => {
+        historyCurrentPage = 0;
+        loadHistory();
+    });
+    document.getElementById('history-btn-export')?.addEventListener('click', exportHistoryCSV);
+    document.getElementById('history-btn-stats')?.addEventListener('click', toggleHistoryStats);
+    document.getElementById('history-btn-clear')?.addEventListener('click', clearHistory);
+    document.getElementById('history-filter-game')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            historyCurrentPage = 0;
+            loadHistory();
+        }
+    });
 
 
     // Games to watch management
@@ -2077,6 +2450,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('deselect-all-btn').addEventListener('click', deselectAllGames);
     document.getElementById('add-game-btn').addEventListener('click', addGameFromSearch);
     document.getElementById('games-filter').addEventListener('input', renderGamesToWatch);
+    document.getElementById('games-filter').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addGameFromSearch();
+        }
+    });
 
     // Inventory filters
     document.getElementById('filter-active').addEventListener('change', onInventoryFilterChange);
@@ -2202,9 +2581,365 @@ function renderWantedItems(tree) {
     });
 }
 
+// ==================== Drop History ====================
+
+const HISTORY_PAGE_SIZE = 50;
+let historyAllEntries = [];
+let historyCurrentPage = 0;
+let historyStatsVisible = false;
+let historyTotal = null;
+let historyStatsData = null;
+let historyMessage = {key: 'loading', values: {}};
+let historyRequestId = 0;
+
+function historyText(key, values = {}) {
+    let text = state.translations.gui?.history?.[key] || key;
+    Object.entries(values).forEach(([name, value]) => {
+        text = text.replaceAll('{' + name + '}', String(value));
+    });
+    return text;
+}
+
+function translateHistory() {
+    document.querySelectorAll('[data-history-key]').forEach(element => {
+        element.textContent = historyText(element.dataset.historyKey);
+    });
+    document.querySelectorAll('[data-history-placeholder]').forEach(element => {
+        const label = historyText(element.dataset.historyPlaceholder);
+        element.placeholder = label;
+        element.setAttribute('aria-label', label);
+    });
+    if (historyTotal !== null) updateHistoryCount(historyTotal, historyAllEntries.length);
+    if (historyMessage) setHistoryTbodyMessage(historyMessage.key, historyMessage.values);
+    else renderHistoryPage(historyCurrentPage);
+    renderHistoryPagination();
+    if (historyStatsData) renderHistoryStats(historyStatsData);
+}
+
+async function loadHistory() {
+    const requestId = ++historyRequestId;
+    const game = document.getElementById('history-filter-game')?.value.trim() || '';
+    const since = document.getElementById('history-filter-since')?.value || '';
+
+    const params = new URLSearchParams();
+    if (game) params.set('game', game);
+    if (since) params.set('since', since);
+    params.set('limit', '5000');
+
+    try {
+        const res = await fetch(`/api/history?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (requestId !== historyRequestId) return;
+        historyAllEntries = data.entries || [];
+        historyTotal = data.total;
+        historyCurrentPage = Math.min(historyCurrentPage, Math.max(0, Math.ceil(historyAllEntries.length / HISTORY_PAGE_SIZE) - 1));
+        updateHistoryCount(data.total, historyAllEntries.length);
+        renderHistoryPage(historyCurrentPage);
+        renderHistoryPagination();
+    } catch (err) {
+        if (requestId !== historyRequestId) return;
+        historyAllEntries = [];
+        historyTotal = null;
+        const count = document.getElementById('history-count');
+        if (count) count.textContent = '';
+        renderHistoryPagination();
+        setHistoryTbodyMessage('load_error', {error: err.message});
+    }
+}
+
+function renderHistoryPage(page) {
+    const tbody = document.getElementById('history-tbody');
+    if (!tbody) return;
+
+    const start = page * HISTORY_PAGE_SIZE;
+    const slice = historyAllEntries.slice(start, start + HISTORY_PAGE_SIZE);
+
+    if (slice.length === 0) {
+        setHistoryTbodyMessage('empty');
+        return;
+    }
+
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+    historyMessage = null;
+    slice.forEach((entry, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.cssText =
+            'border-bottom: 1px solid var(--border-color, #333);' +
+            (idx % 2 === 0
+                ? 'background: var(--bg-row-even, transparent);'
+                : 'background: var(--bg-row-odd, rgba(255,255,255,0.02));');
+
+        const claimedAt = new Date(entry.claimed_at);
+        const dateStr = isNaN(claimedAt) ? entry.claimed_at : claimedAt.toLocaleString();
+
+        appendHistoryCell(tr, dateStr, 'white-space:nowrap');
+        appendHistoryCell(tr, entry.game, 'font-weight:600');
+        appendHistoryCell(tr, entry.campaign);
+        appendHistoryCell(tr, entry.drop_name);
+        appendHistoryCell(
+            tr,
+            Array.isArray(entry.benefits) ? entry.benefits.join(', ') : entry.benefits,
+            'color:var(--text-muted,#888); font-size:0.85em'
+        );
+        appendHistoryCell(tr, String(entry.required_minutes), 'text-align:right');
+
+        tbody.appendChild(tr);
+    });
+}
+
+function appendHistoryCell(tr, text, extraStyle) {
+    const td = document.createElement('td');
+    td.style.cssText = 'padding: 8px 12px;' + (extraStyle || '');
+    td.textContent = text;
+    tr.appendChild(td);
+}
+
+function setHistoryTbodyMessage(key, values = {}) {
+    historyMessage = {key, values};
+    const tbody = document.getElementById('history-tbody');
+    if (!tbody) return;
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 6;
+    td.style.cssText = 'padding:24px; text-align:center; color:var(--text-muted,#888)';
+    td.textContent = historyText(key, values);
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+}
+
+function updateHistoryCount(total, returned) {
+    const el = document.getElementById('history-count');
+    if (!el) return;
+    el.textContent = returned < total
+        ? historyText('filtered_count', {shown: returned, total})
+        : historyText('count', {total});
+}
+
+function renderHistoryPagination() {
+    const container = document.getElementById('history-pagination');
+    if (!container) return;
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    const totalPages = Math.ceil(historyAllEntries.length / HISTORY_PAGE_SIZE);
+    if (totalPages <= 1) return;
+
+    if (historyCurrentPage > 0) {
+        container.appendChild(makeHistoryPageBtn(historyText('previous'), () => {
+            historyCurrentPage--;
+            renderHistoryPage(historyCurrentPage);
+            renderHistoryPagination();
+            scrollHistoryToTable();
+        }));
+    }
+
+    historyPageRange(historyCurrentPage, totalPages).forEach((p) => {
+        if (p === '…') {
+            const span = document.createElement('span');
+            span.textContent = '…';
+            span.style.padding = '5px 8px';
+            container.appendChild(span);
+        } else {
+            const btn = makeHistoryPageBtn(String(p + 1), () => {
+                historyCurrentPage = p;
+                renderHistoryPage(historyCurrentPage);
+                renderHistoryPagination();
+                scrollHistoryToTable();
+            });
+            if (p === historyCurrentPage) {
+                btn.style.background = 'var(--accent,#7287fd)';
+                btn.style.color = '#fff';
+            }
+            container.appendChild(btn);
+        }
+    });
+
+    if (historyCurrentPage < totalPages - 1) {
+        container.appendChild(makeHistoryPageBtn(historyText('next'), () => {
+            historyCurrentPage++;
+            renderHistoryPage(historyCurrentPage);
+            renderHistoryPagination();
+            scrollHistoryToTable();
+        }));
+    }
+}
+
+function makeHistoryPageBtn(label, onClick) {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText =
+        'padding:5px 12px; border-radius:6px; border:1px solid var(--border-color,#444);' +
+        'background:var(--bg-button,#313244); color:var(--text-primary,#cdd6f4); cursor:pointer;';
+    btn.addEventListener('click', onClick);
+    return btn;
+}
+
+function historyPageRange(current, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+
+    const pages = [];
+    if (current <= 3) {
+        pages.push(0, 1, 2, 3, 4, '…', total - 1);
+    } else if (current >= total - 4) {
+        pages.push(0, '…', total - 5, total - 4, total - 3, total - 2, total - 1);
+    } else {
+        pages.push(0, '…', current - 1, current, current + 1, '…', total - 1);
+    }
+    return pages;
+}
+
+function scrollHistoryToTable() {
+    document.getElementById('history-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function exportHistoryCSV() {
+    const game = document.getElementById('history-filter-game')?.value.trim() || '';
+    const since = document.getElementById('history-filter-since')?.value || '';
+
+    const params = new URLSearchParams();
+    if (game) params.set('game', game);
+    if (since) params.set('since', since);
+
+    const url = `/api/history/export.csv?${params.toString()}`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = game ? `drop_history_${game}.csv` : 'drop_history.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+async function toggleHistoryStats() {
+    const panel = document.getElementById('history-stats-panel');
+    if (!panel) return;
+
+    historyStatsVisible = !historyStatsVisible;
+    panel.style.display = historyStatsVisible ? 'block' : 'none';
+
+    if (!historyStatsVisible) return;
+
+    try {
+        const res = await fetch('/api/history/stats');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        historyStatsData = data;
+        document.getElementById('history-stats-error').textContent = '';
+        renderHistoryStats(data);
+    } catch (err) {
+        document.getElementById('history-stats-error').textContent = historyText('stats_error', {error: err.message});
+    }
+}
+
+function renderHistoryStats(data) {
+    const totalEl = document.getElementById('stats-total');
+    if (totalEl) totalEl.textContent = data.total_drops;
+
+    const gameEl = document.getElementById('stats-by-game');
+    if (gameEl) {
+        while (gameEl.firstChild) gameEl.removeChild(gameEl.firstChild);
+
+        const label = makeElement('div', {
+            style: 'font-size:0.75rem; color:var(--text-muted,#888); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;'
+        }, historyText('by_game'));
+        gameEl.appendChild(label);
+
+        Object.entries(data.by_game || {}).slice(0, 10).forEach(([game, count]) => {
+            const row = makeElement('div', {
+                style: 'display:flex; justify-content:space-between; gap:16px; padding:2px 0;'
+            });
+            row.appendChild(makeElement('span', {}, game));
+            row.appendChild(makeElement('span', {
+                style: 'font-weight:700; color:var(--accent,#7287fd)'
+            }, count));
+            gameEl.appendChild(row);
+        });
+    }
+
+    const monthEl = document.getElementById('stats-by-month');
+    if (monthEl) {
+        while (monthEl.firstChild) monthEl.removeChild(monthEl.firstChild);
+
+        const label = makeElement('div', {
+            style: 'font-size:0.75rem; color:var(--text-muted,#888); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;'
+        }, historyText('by_month'));
+        monthEl.appendChild(label);
+
+        Object.entries(data.by_month || {}).reverse().slice(0, 6).forEach(([month, count]) => {
+            const row = makeElement('div', {
+                style: 'display:flex; justify-content:space-between; gap:16px; padding:2px 0;'
+            });
+            row.appendChild(makeElement('span', {}, month));
+            row.appendChild(makeElement('span', {
+                style: 'font-weight:700; color:var(--accent,#7287fd)'
+            }, count));
+            monthEl.appendChild(row);
+        });
+    }
+}
+
+async function clearHistory() {
+    const confirmed = window.confirm(
+        historyText('clear_confirm')
+    );
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch('/api/history', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirm: true }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        historyRequestId++;
+        historyAllEntries = [];
+        historyTotal = 0;
+        historyStatsData = {total_drops: 0, by_game: {}, by_month: {}};
+        historyCurrentPage = 0;
+        updateHistoryCount(0, 0);
+        setHistoryTbodyMessage('cleared');
+        renderHistoryPagination();
+
+        if (historyStatsVisible) {
+            const totalEl = document.getElementById('stats-total');
+            if (totalEl) totalEl.textContent = '0';
+
+            ['stats-by-game', 'stats-by-month'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) while (el.firstChild) el.removeChild(el.firstChild);
+            });
+        }
+    } catch (err) {
+        alert(historyText('clear_error', {error: err.message}));
+    }
+}
+
 // ==================== DOM Utilities ====================
 
-const TRUSTED_HELP_LINKS = new Set(['https://www.twitch.tv/drops/campaigns']);
+const TRUSTED_HELP_LINKS = new Set(['https://www.twitch.tv/drops/campaigns', 'https://t.me/BotFather']);
+
+function tgHelpSetup(t) {
+    const tg = (t.settings && t.settings.telegram) || (t.gui && t.gui.settings && t.gui.settings.telegram) || null;
+    if (!tg) return null;
+    return {
+        title: tg.name || 'Telegram Notifications',
+        description: tg.description || 'Receive instant notifications on Telegram when you claim drops. Setup instructions:',
+        steps: tg.setup_steps || [
+            'Go to @BotFather on Telegram',
+            'Create a new bot with /newbot command',
+            'Save the bot token you receive',
+            'Start your new bot by searching for it and clicking /start (or send any message)',
+            'Get your Chat ID by opening this URL in browser (replace TOKEN): https://api.telegram.org/botTOKEN/getUpdates',
+            'Find your user ID in the response - it is the number in "from": {"id": YOUR_ID}',
+            'Enter the token and Chat ID in Settings and click Test Connection'
+        ]
+    };
+}
 
 /**
  * @param {string} tag
@@ -2242,7 +2977,7 @@ function makeHelpList(tag, items) {
 
 function appendTrustedHelpContent(parent, text) {
     const source = String(text);
-    const linkPattern = /<a\b[^>]*\bhref=(["'])(https:\/\/www\.twitch\.tv\/drops\/campaigns)\1[^>]*>(.*?)<\/a>/gi;
+    const linkPattern = /<a\b[^>]*\bhref=(["'])(https:\/\/www\.twitch\.tv\/drops\/campaigns|https:\/\/t\.me\/BotFather)\1[^>]*>(.*?)<\/a>/gi;
     let lastIndex = 0;
     let match;
     let matched = false;

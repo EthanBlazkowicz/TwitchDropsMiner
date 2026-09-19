@@ -32,11 +32,36 @@
         "no_connection": "Tidak dapat tersambung ke Twitch. Silakan coba lagi dalam {seconds} detik...."
     },
     "gui": {
+        "auth": {
+            "title": "Kata sandi dasbor",
+            "help": "Lindungi dasbor dengan satu kata sandi. Mengubahnya akan mengeluarkan sesi lain. Menonaktifkan perlindungan menghapus kata sandi.",
+            "login_title": "Buka kunci dasbor",
+            "password": "Kata sandi",
+            "remember": "Ingat saya selama 30 hari",
+            "login": "Masuk",
+            "logout": "Keluar",
+            "current_password": "Kata sandi saat ini",
+            "new_password": "Kata sandi baru (minimal 8 karakter)",
+            "confirm_password": "Konfirmasi kata sandi baru",
+            "enable": "Aktifkan perlindungan kata sandi",
+            "change": "Ubah kata sandi",
+            "disable": "Nonaktifkan perlindungan dan hapus kata sandi",
+            "enabled": "Perlindungan kata sandi aktif.",
+            "disabled": "Perlindungan kata sandi nonaktif.",
+            "invalid_password": "Kata sandi salah.",
+            "password_length": "Gunakan 8 hingga 1024 karakter.",
+            "password_mismatch": "Kata sandi tidak cocok.",
+            "rate_limited": "Terlalu banyak percobaan. Tunggu satu menit dan coba lagi.",
+            "auth_changed": "Pengaturan autentikasi berubah. Muat ulang halaman.",
+            "authentication_required": "Silakan masuk kembali.",
+            "forbidden": "Permintaan diblokir. Buka aplikasi ini secara langsung dan coba lagi.",
+            "invalid_request": "Permintaan tidak valid.",
+            "request_failed": "Permintaan gagal. Coba lagi."
+        },
         "output": "Keluaran",
         "status": {
             "name": "Status",
             "idle": "Tidak aktif",
-            "ready": "Siap",
             "exiting": "Keluar...",
             "terminated": "Diakhiri",
             "cleanup": "Membersihkan saluran...",
@@ -44,13 +69,15 @@
             "switching": "Koleksi saluran yang sedang berlangsung...",
             "fetching_inventory": "Mmengambil inventaris...",
             "fetching_campaigns": "Mengambil kampanye...",
-            "adding_campaigns": "Menambahkan daftar kampanye ke inventaris... {counter}"
+            "adding_campaigns": "Menambahkan daftar kampanye ke inventaris... {counter}",
+            "ready": "Siap"
         },
         "tabs": {
             "main": "Utama",
             "inventory": "Inventaris",
             "settings": "Parameter",
-            "help": "Bantuan"
+            "help": "Bantuan",
+            "history": "Riwayat"
         },
         "login": {
             "name": "Formulir masuk",
@@ -138,8 +165,6 @@
             "games_to_watch": "Game untuk Ditonton",
             "games_help": "Pilih game untuk ditonton. Urutan penting - seret untuk mengatur ulang prioritas (atas = prioritas tertinggi).",
             "search_games": "Cari game...",
-            "add_game": "Add Game",
-            "add_game_hint": " Click \"Add Game\" to add it manually.",
             "select_all": "Pilih Semua",
             "deselect_all": "Batalkan Semua",
             "selected_games": "Game yang Dipilih (seret untuk mengatur ulang)",
@@ -150,14 +175,49 @@
             "actions": "Tindakan",
             "connection_quality": "Kualitas Koneksi:",
             "minimum_refresh": "Interval Refresh Minimum (menit):",
+            "telegram": {
+                "name": "Notifikasi Telegram",
+                "description": "Terima notifikasi di Telegram ketika Anda mengklaim drop.",
+                "bot_token": "Token Bot Telegram",
+                "chat_id": "ID Chat Telegram",
+                "save_settings": "Simpan Pengaturan",
+                "test_connection": "Uji Koneksi",
+                "how_to_setup": "Cara Menyiapkan",
+                "setup_steps": [
+                    "Pergi ke <a href=\"https://t.me/BotFather\" target=\"_blank\">@BotFather</a> di Telegram",
+                    "Buat bot baru dengan perintah /newbot",
+                    "Simpan token bot yang Anda terima",
+                    "Mulai bot baru Anda dengan mencarinya dan mengklik /start (atau kirim pesan apa pun)",
+                    "Dapatkan ID Chat Anda dengan membuka URL ini di browser (ganti TOKEN): https://api.telegram.org/botTOKEN/getUpdates",
+                    "Temukan ID pengguna Anda dalam respons - itu adalah angka di \"from\": {\"id\": YOUR_ID}",
+                    "Masukkan token dan ID Chat, lalu klik Uji Koneksi"
+                ],
+                "success": "✓ Koneksi Telegram berhasil! Anda akan menerima notifikasi saat mengklaim drop.",
+                "saved": "✓ Pengaturan berhasil disimpan!",
+                "error": "Gagal terhubung ke Telegram. Periksa token bot dan ID chat Anda.",
+                "missing_credentials": "Silakan isi token bot dan ID chat. Lihat petunjuk pengaturan di tab Bantuan.",
+                "get_from_botfather": "Dapatkan dari @BotFather",
+                "your_user_id": "ID pengguna numerik Telegram Anda",
+                "save_error": "Gagal menyimpan pengaturan Telegram. Silakan coba lagi.",
+                "credentials_help": "Kosongkan token untuk mempertahankan token tersimpan. Untuk menonaktifkan notifikasi, hapus ID Chat lalu simpan."
+            },
             "reload_campaigns": "Muat Ulang Kampanye",
+            "add_game": "Add Game",
+            "add_game_hint": " Click \"Add Game\" to add it manually.",
             "drop_name_blacklist": "Kata Kunci Nama Drop yang Diabaikan",
             "drop_name_blacklist_help": "Masukkan satu kata kunci per baris. Pencocokan mencari substring literal tanpa membedakan huruf besar dan kecil. Drop yang cocok dan cabang yang bergantung padanya diabaikan; cabang yang hanya menjadi prasyarat dilewati, sementara prasyarat bersama tetap dapat ditambang.",
             "drop_name_blacklist_placeholder": "(JP)\n[KR]\nJapan",
             "clear_all_cache": "Hapus Semua Cache",
             "clear_all_cache_help": "Menghapus status kampanye, channel, dan data turunan miner lokal; mempertahankan login dan pengaturan, lalu memuat ulang data dari Twitch.",
             "mining_benefits": "Manfaat Penambangan",
-            "mining_benefits_help": "Pilih jenis drops yang ingin Anda tambang."
+            "mining_benefits_help": "Pilih jenis drops yang ingin Anda tambang.",
+            "multiple_games_found": "Beberapa game ditemukan untuk pencarian Anda. Harap lebih spesifik.",
+            "manual_game_warning": "\"{game}\" tidak ada dalam daftar kampanye yang tersedia. Tetap tambahkan ke game untuk ditonton?",
+            "deselect_all_warning": "Apakah Anda yakin ingin menghapus semua game dari daftar pantauan Anda?",
+            "confirm_btn": "Konfirmasi",
+            "cancel_btn": "Batal",
+            "game_priority": "Prioritas untuk {game}",
+            "remove_game": "Hapus {game}"
         },
         "help": {
             "about": "Tentang Twitch Drops Miner",
@@ -214,6 +274,35 @@
         "wanted": {
             "name": "Antrean Drops yang Diinginkan",
             "none": "Tidak ada drops yang diinginkan dalam antrean..."
+        },
+        "history": {
+            "title": "Riwayat Drop",
+            "filter_game": "Filter berdasarkan game…",
+            "since": "Diklaim pada atau setelah (UTC)",
+            "apply": "Terapkan",
+            "export": "Ekspor CSV",
+            "stats": "Statistik",
+            "clear": "Hapus",
+            "total": "Total drop diklaim",
+            "claimed_at": "Tanggal & Waktu",
+            "game": "Game",
+            "campaign": "Kampanye",
+            "drop": "Drop",
+            "rewards": "Hadiah",
+            "minutes": "Menit",
+            "loading": "Memuat riwayat…",
+            "empty": "Tidak ada drop yang cocok dengan filter ini.",
+            "count": "Total drop: {total}",
+            "filtered_count": "Menampilkan {shown} dari {total} drop tercatat",
+            "load_error": "Gagal memuat riwayat: {error}",
+            "previous": "Sebelumnya",
+            "next": "Berikutnya",
+            "by_game": "Berdasarkan game",
+            "by_month": "Berdasarkan bulan",
+            "clear_confirm": "Hapus semua riwayat drop yang tersimpan secara lokal? Tindakan ini tidak dapat dibatalkan.",
+            "cleared": "Riwayat dihapus.",
+            "clear_error": "Gagal menghapus riwayat: {error}",
+            "stats_error": "Gagal memuat statistik: {error}"
         }
     }
 }

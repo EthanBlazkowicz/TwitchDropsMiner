@@ -32,11 +32,36 @@
         "no_connection": "Nu se poate conecta la Twitch. Vă rugăm să încercați din nou în {seconds} secunde..."
     },
     "gui": {
+        "auth": {
+            "title": "Parola panoului",
+            "help": "Protejează panoul cu o singură parolă. Schimbarea deconectează celelalte sesiuni. Dezactivarea protecției șterge parola.",
+            "login_title": "Deblochează panoul",
+            "password": "Parolă",
+            "remember": "Ține-mă conectat 30 de zile",
+            "login": "Conectare",
+            "logout": "Deconectare",
+            "current_password": "Parola actuală",
+            "new_password": "Parolă nouă (minimum 8 caractere)",
+            "confirm_password": "Confirmă parola nouă",
+            "enable": "Activează protecția prin parolă",
+            "change": "Schimbă parola",
+            "disable": "Dezactivează protecția și șterge parola",
+            "enabled": "Protecția prin parolă este activată.",
+            "disabled": "Protecția prin parolă este dezactivată.",
+            "invalid_password": "Parolă incorectă.",
+            "password_length": "Folosește între 8 și 1024 de caractere.",
+            "password_mismatch": "Parolele nu coincid.",
+            "rate_limited": "Prea multe încercări. Așteaptă un minut și încearcă din nou.",
+            "auth_changed": "Setările de autentificare s-au schimbat. Reîncarcă pagina.",
+            "authentication_required": "Conectează-te din nou.",
+            "forbidden": "Cerere blocată. Deschide direct aplicația și încearcă din nou.",
+            "invalid_request": "Cerere nevalidă.",
+            "request_failed": "Cererea a eșuat. Încearcă din nou."
+        },
         "output": "Ieșire",
         "status": {
             "name": "Statut",
             "idle": "Inactiv",
-            "ready": "Gata",
             "exiting": "Ieșire...",
             "terminated": "Terminat",
             "cleanup": "Curățarea canalelor...",
@@ -44,13 +69,15 @@
             "switching": "Colectarea canalelor în curs...",
             "fetching_inventory": "Se precuperează inventarul...",
             "fetching_campaigns": "Se recuperează campaniile...",
-            "adding_campaigns": "S-a adăugat lista de campanii la inventar... {counter}"
+            "adding_campaigns": "S-a adăugat lista de campanii la inventar... {counter}",
+            "ready": "Gata"
         },
         "tabs": {
             "main": "Principal",
             "inventory": "Inventar",
             "settings": "Setări",
-            "help": "Ajutor"
+            "help": "Ajutor",
+            "history": "Istoric"
         },
         "login": {
             "name": "Formular de conectare",
@@ -138,8 +165,6 @@
             "games_to_watch": "Jocuri de urmărit",
             "games_help": "Selectați jocurile de urmărit. Ordinea contează - trageți pentru a reordona prioritatea (sus = prioritate maximă).",
             "search_games": "Căutați jocuri...",
-            "add_game": "Add Game",
-            "add_game_hint": " Click \"Add Game\" to add it manually.",
             "select_all": "Selectați tot",
             "deselect_all": "Deselectați tot",
             "selected_games": "Jocuri selectate (trageți pentru a reordona)",
@@ -150,14 +175,49 @@
             "actions": "Acțiuni",
             "connection_quality": "Calitatea conexiunii:",
             "minimum_refresh": "Interval minim de reîmprospătare (minute):",
+            "telegram": {
+                "name": "Notificări Telegram",
+                "description": "Primiți notificări pe Telegram atunci când revendicați drops.",
+                "bot_token": "Token Bot Telegram",
+                "chat_id": "ID Chat Telegram",
+                "save_settings": "Salvați setările",
+                "test_connection": "Testare Conexiune",
+                "how_to_setup": "Cum se configurează",
+                "setup_steps": [
+                    "Accesați <a href=\"https://t.me/BotFather\" target=\"_blank\">@BotFather</a> pe Telegram",
+                    "Creați un bot nou cu comanda /newbot",
+                    "Salvați tokenul botului pe care îl primiți",
+                    "Porniți noul bot căutând-o și dând clic pe /start (sau trimiteți orice mesaj)",
+                    "Obțineți ID-ul dvs. de chat deschizând acest URL în browser (înlocuiți TOKEN): https://api.telegram.org/botTOKEN/getUpdates",
+                    "Găsiți ID-ul utilizatorului în răspuns - acesta este numărul din \"from\": {\"id\": YOUR_ID}",
+                    "Introduceți tokenul și ID-ul de chat și faceți clic pe Testare Conexiune"
+                ],
+                "saved": "✓ Setări salvate cu succes!",
+                "success": "✓ Conexiune Telegram reușită! Veți primi notificări când revendicați drops.",
+                "error": "Conexiune la Telegram eșuată. Verificați tokenul botului și ID-ul chat.",
+                "missing_credentials": "Completați tokenul botului și ID-ul chat. Consultați instrucțiunile de configurare în fila Ajutor.",
+                "get_from_botfather": "Obțineți de la @BotFather",
+                "your_user_id": "ID-ul utilizatorului numeric Telegram",
+                "save_error": "Setările Telegram nu au putut fi salvate. Încearcă din nou.",
+                "credentials_help": "Lasă tokenul necompletat pentru a păstra tokenul salvat. Pentru a dezactiva notificările, șterge ID-ul chatului și salvează."
+            },
             "reload_campaigns": "Reîncarcă campaniile",
+            "add_game": "Add Game",
+            "add_game_hint": " Click \"Add Game\" to add it manually.",
             "drop_name_blacklist": "Cuvinte-cheie pentru dropuri ignorate",
             "drop_name_blacklist_help": "Introduceți un cuvânt-cheie pe fiecare linie. Potrivirea caută un subșir literal fără a diferenția majusculele de minuscule. Dropurile potrivite și ramurile dependente sunt ignorate; ramurile care servesc doar drept condiții prealabile sunt omise, iar condițiile prealabile comune pot fi minate în continuare.",
             "drop_name_blacklist_placeholder": "(JP)\n[KR]\nJapan",
             "clear_all_cache": "Șterge tot cache-ul",
             "clear_all_cache_help": "Șterge starea locală a campaniilor, canalelor și datele derivate ale minerului; păstrează autentificarea și setările, apoi reîncarcă datele de pe Twitch.",
             "mining_benefits": "Beneficii Minerit",
-            "mining_benefits_help": "Selectați ce tipuri de drops doriți să minați."
+            "mining_benefits_help": "Selectați ce tipuri de drops doriți să minați.",
+            "multiple_games_found": "Au fost găsite mai multe jocuri pentru căutarea dvs. Vă rugăm să fiți mai specific.",
+            "manual_game_warning": "„{game}” nu se află în lista campaniilor disponibile. Îl adaugi totuși la jocurile de urmărit?",
+            "deselect_all_warning": "Sunteți sigur că doriți să eliminați toate jocurile din lista dvs. de urmărire?",
+            "confirm_btn": "Confirmă",
+            "cancel_btn": "Anulează",
+            "game_priority": "Prioritate pentru {game}",
+            "remove_game": "Elimină {game}"
         },
         "help": {
             "about": "Despre Twitch Drops Miner",
@@ -214,6 +274,35 @@
         "wanted": {
             "name": "Coadă Drops Dorite",
             "none": "Niciun drop dorit în coadă..."
+        },
+        "history": {
+            "title": "Istoricul dropurilor",
+            "filter_game": "Filtrează după joc…",
+            "since": "Revendicat începând cu (UTC)",
+            "apply": "Aplică",
+            "export": "Exportă CSV",
+            "stats": "Statistici",
+            "clear": "Șterge",
+            "total": "Total dropuri revendicate",
+            "claimed_at": "Data și ora",
+            "game": "Joc",
+            "campaign": "Campanie",
+            "drop": "Drop",
+            "rewards": "Recompense",
+            "minutes": "Minute",
+            "loading": "Se încarcă istoricul…",
+            "empty": "Niciun drop nu corespunde filtrelor.",
+            "count": "Total dropuri: {total}",
+            "filtered_count": "Se afișează {shown} din {total} dropuri înregistrate",
+            "load_error": "Eroare la încărcarea istoricului: {error}",
+            "previous": "Anterior",
+            "next": "Următor",
+            "by_game": "După joc",
+            "by_month": "După lună",
+            "clear_confirm": "Ștergi întregul istoric local al dropurilor? Acțiunea nu poate fi anulată.",
+            "cleared": "Istoric șters.",
+            "clear_error": "Istoricul nu a putut fi șters: {error}",
+            "stats_error": "Statisticile nu au putut fi încărcate: {error}"
         }
     }
 }

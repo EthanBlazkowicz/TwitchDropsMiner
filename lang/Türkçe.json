@@ -32,11 +32,36 @@
         "no_connection": "Twitch'e bağlanılamıyor. {seconds} saniye içinde tekrar deneniyor..."
     },
     "gui": {
+        "auth": {
+            "title": "Panel parolası",
+            "help": "Paneli tek bir parolayla koruyun. Parolayı değiştirmek diğer oturumları kapatır. Korumayı devre dışı bırakmak parolayı siler.",
+            "login_title": "Panelin kilidini aç",
+            "password": "Parola",
+            "remember": "Beni 30 gün hatırla",
+            "login": "Giriş yap",
+            "logout": "Çıkış yap",
+            "current_password": "Mevcut parola",
+            "new_password": "Yeni parola (en az 8 karakter)",
+            "confirm_password": "Yeni parolayı doğrula",
+            "enable": "Parola korumasını etkinleştir",
+            "change": "Parolayı değiştir",
+            "disable": "Korumayı devre dışı bırak ve parolayı sil",
+            "enabled": "Parola koruması etkin.",
+            "disabled": "Parola koruması devre dışı.",
+            "invalid_password": "Yanlış parola.",
+            "password_length": "8 ile 1024 karakter kullanın.",
+            "password_mismatch": "Parolalar eşleşmiyor.",
+            "rate_limited": "Çok fazla deneme. Bir dakika bekleyip tekrar deneyin.",
+            "auth_changed": "Kimlik doğrulama ayarları değişti. Sayfayı yenileyin.",
+            "authentication_required": "Lütfen tekrar giriş yapın.",
+            "forbidden": "İstek engellendi. Uygulamayı doğrudan açıp tekrar deneyin.",
+            "invalid_request": "Geçersiz istek.",
+            "request_failed": "İstek başarısız oldu. Tekrar deneyin."
+        },
         "output": "Protokoll",
         "status": {
             "name": "Durum",
             "idle": "Boşta",
-            "ready": "Hazır",
             "exiting": "Çıkış...",
             "terminated": "Sonlandırıldı",
             "cleanup": "Kanalları temizle..",
@@ -44,13 +69,15 @@
             "switching": "Kanal değiştiriliyor...",
             "fetching_inventory": "Envanter getiriliyor...",
             "fetching_campaigns": "Kampanyalar getiriliyor...",
-            "adding_campaigns": "Kampanyaları envantere ekle... {counter}"
+            "adding_campaigns": "Kampanyaları envantere ekle... {counter}",
+            "ready": "Hazır"
         },
         "tabs": {
             "main": "Ana",
             "inventory": "Envanter",
             "settings": "Ayarlar",
-            "help": "Yardım"
+            "help": "Yardım",
+            "history": "Geçmiş"
         },
         "login": {
             "name": "Giriş Yap",
@@ -138,8 +165,6 @@
             "games_to_watch": "İzlenecek Oyunlar",
             "games_help": "İzlenecek oyunları seçin. Sıralama önemlidir - önceliği yeniden sıralamak için sürükleyin (üst = en yüksek öncelik).",
             "search_games": "Oyun ara...",
-            "add_game": "Add Game",
-            "add_game_hint": " Click \"Add Game\" to add it manually.",
             "select_all": "Tümünü seç",
             "deselect_all": "Tümünü kaldır",
             "selected_games": "Seçilen oyunlar (yeniden sıralamak için sürükleyin)",
@@ -150,14 +175,49 @@
             "actions": "İşlemler",
             "connection_quality": "Bağlantı kalitesi:",
             "minimum_refresh": "Minimum yenileme aralığı (dakika):",
+            "telegram": {
+                "name": "Telegram Bildirimleri",
+                "description": "Drop talep ettiğinizde Telegram'da bildirim alın.",
+                "bot_token": "Telegram Bot Token",
+                "chat_id": "Telegram Sohbet Kimliği",
+                "save_settings": "Ayarları Kaydet",
+                "test_connection": "Bağlantıyı Test Et",
+                "how_to_setup": "Nasıl Kurulur",
+                "setup_steps": [
+                    "Telegram'da <a href=\"https://t.me/BotFather\" target=\"_blank\">@BotFather</a> sayfasına gidin",
+                    "/newbot komutu ile yeni bir bot oluşturun",
+                    "Aldığınız bot token'ını kaydedin",
+                    "Yeni bot'unuzu arayarak /start'a tıklayarak başlatın (veya herhangi bir mesaj gönderin)",
+                    "Tarayıcıda bu URL'yi açarak Chat Kimliğini alın (TOKEN'i değiştirin): https://api.telegram.org/botTOKEN/getUpdates",
+                    "Yanıtınızda kullanıcı kimliğinizi bulun - \"from\": {\"id\": YOUR_ID} içindeki sayıdır",
+                    "Token ve Sohbet Kimliğini girin ve Bağlantıyı Test Et'e tıklayın"
+                ],
+                "saved": "✓ Ayarlar başarıyla kaydedildi!",
+                "success": "✓ Telegram bağlantısı başarılı! Drop talep ettiğinizde bildirim alacaksınız.",
+                "error": "Telegram'a bağlanılamadı. Bot token'ınızı ve sohbet kimliğinizi kontrol edin.",
+                "missing_credentials": "Lütfen bot token'ını ve sohbet kimliğini doldurun. Yardım sekmesindeki kurulum talimatlarını görün.",
+                "get_from_botfather": "@BotFather'dan Al",
+                "your_user_id": "Telegram sayısal kullanıcı kimliğiniz",
+                "save_error": "Telegram ayarları kaydedilemedi. Lütfen tekrar deneyin.",
+                "credentials_help": "Kayıtlı tokeni korumak için token alanını boş bırakın. Bildirimleri kapatmak için Sohbet Kimliğini silip kaydedin."
+            },
             "reload_campaigns": "Kampanyaları Yeniden Yükle",
+            "add_game": "Add Game",
+            "add_game_hint": " Click \"Add Game\" to add it manually.",
             "drop_name_blacklist": "Yoksayılan Drop Anahtar Kelimeleri",
             "drop_name_blacklist_help": "Her satıra bir anahtar kelime girin. Eşleştirme, büyük/küçük harfe duyarsız gerçek bir alt dize arar. Eşleşen droplar ve bunlara bağlı dallar yoksayılır; yalnızca ön koşul olan dallar atlanırken ortak ön koşulların madenciliği yapılabilir.",
             "drop_name_blacklist_placeholder": "(JP)\n[KR]\nJapan",
             "clear_all_cache": "Tüm Önbelleği Temizle",
             "clear_all_cache_help": "Yerel kampanya, kanal ve türetilmiş madenci durumunu temizler; oturum açma bilgilerini ve ayarları korur, ardından Twitch'ten yeniden yükler.",
             "mining_benefits": "Madencilik Avantajları",
-            "mining_benefits_help": "Hangi tür dropları toplamak istediğinizi seçin."
+            "mining_benefits_help": "Hangi tür dropları toplamak istediğinizi seçin.",
+            "multiple_games_found": "Aramanız için birden fazla oyun bulundu. Lütfen daha belirgin olun.",
+            "manual_game_warning": "\"{game}\" mevcut kampanyalar listesinde yok. Yine de izlenecek oyunlara eklensin mi?",
+            "deselect_all_warning": "İzleme listenizdeki tüm oyunları kaldırmak istediğinize emin misiniz?",
+            "confirm_btn": "Onayla",
+            "cancel_btn": "İptal",
+            "game_priority": "{game} için öncelik",
+            "remove_game": "{game} oyununu kaldır"
         },
         "help": {
             "about": "Twitch Drops Miner Hakkında",
@@ -214,6 +274,35 @@
         "wanted": {
             "name": "İstenen Drop Kuyruğu",
             "none": "Kuyrukta istenen drop yok..."
+        },
+        "history": {
+            "title": "Drop Geçmişi",
+            "filter_game": "Oyuna göre filtrele…",
+            "since": "Bu tarihte veya sonrasında alındı (UTC)",
+            "apply": "Uygula",
+            "export": "CSV dışa aktar",
+            "stats": "İstatistikler",
+            "clear": "Temizle",
+            "total": "Alınan toplam drop",
+            "claimed_at": "Tarih ve saat",
+            "game": "Oyun",
+            "campaign": "Kampanya",
+            "drop": "Drop",
+            "rewards": "Ödüller",
+            "minutes": "Dakika",
+            "loading": "Geçmiş yükleniyor…",
+            "empty": "Bu filtrelere uyan drop yok.",
+            "count": "Toplam drop: {total}",
+            "filtered_count": "Kayıtlı {total} droptan {shown} tanesi gösteriliyor",
+            "load_error": "Geçmiş yüklenemedi: {error}",
+            "previous": "Önceki",
+            "next": "Sonraki",
+            "by_game": "Oyuna göre",
+            "by_month": "Aya göre",
+            "clear_confirm": "Yerel olarak kaydedilmiş tüm drop geçmişi silinsin mi? Bu işlem geri alınamaz.",
+            "cleared": "Geçmiş temizlendi.",
+            "clear_error": "Geçmiş temizlenemedi: {error}",
+            "stats_error": "İstatistikler yüklenemedi: {error}"
         }
     }
 }
