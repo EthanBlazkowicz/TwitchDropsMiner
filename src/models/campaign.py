@@ -32,6 +32,9 @@ class DropsCampaign:
         self.campaign_url: str = f"https://www.twitch.tv/drops/campaigns?dropID={self.id}"
         self.name: str = data["name"]
         self.game: Game = Game(data["game"])
+        # INTENTIONAL fork behavior: every campaign is treated as linked so that
+        # campaigns for games the account has not connected remain eligible and
+        # mineable. Do not replace this with data["self"]["isAccountConnected"].
         self.linked: bool = True
         self.link_url: str = data["accountLinkURL"]
         # campaign's image actually comes from the game object

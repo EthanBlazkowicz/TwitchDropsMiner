@@ -133,6 +133,10 @@ lang/                # Translation JSON files (20 languages)
 
 - `DropsCampaign`: Campaign with game, timeframe, allowed channels
 - Time-based eligibility and progress tracking
+- INTENTIONAL fork behavior: `DropsCampaign.linked` is hardcoded `True` so campaigns
+  for games the account has not connected stay eligible and mineable. Do not replace
+  it with `data["self"]["isAccountConnected"]`; tests in `tests/test_benefit_filter.py`
+  and `tests/test_special_game_watch.py` encode this divergence from upstream.
 - Special Events (`509663`) and IRL (`509672`) are identified by `Game.is_special()`.
   Their campaigns can progress across categories only on live channels in a non-empty,
   enabled ACL. Without an ACL, the streamed category must still match. Explicit

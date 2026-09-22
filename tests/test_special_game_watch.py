@@ -196,17 +196,14 @@ def test_regular_campaign_keeps_game_and_drops_enabled_checks(
         "upcoming_drop",
         "claimed",
         "ignored",
-        "unlinked",
+        # NOTE: no "unlinked" blocker - this fork intentionally treats every
+        # campaign as linked so unconnected games stay mineable.
         "missing_precondition",
         "subscription",
     ],
 )
 def test_special_campaign_preserves_earning_requirements(twitch, blocker):
-    campaign = _campaign(
-        twitch,
-        SPECIAL_EVENTS,
-        benefit_type="DIRECT_ENTITLEMENT" if blocker == "unlinked" else "EMOTE",
-    )
+    campaign = _campaign(twitch, SPECIAL_EVENTS)
     drop = campaign.timed_drops["event-drop"]
     now = datetime.now(timezone.utc)
     match blocker:

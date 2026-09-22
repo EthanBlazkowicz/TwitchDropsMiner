@@ -100,7 +100,9 @@ class TestBenefitFilter(unittest.TestCase):
         drop2.has_wanted_unclaimed_benefits.return_value = False
         self.assertFalse(campaign.has_wanted_unclaimed_benefits(allowed))
 
-    def test_campaign_preserves_account_link_status(self):
+    def test_unlinked_campaigns_are_intentionally_mineable(self):
+        # This fork intentionally ignores the account-link state so campaigns
+        # for unconnected games stay eligible and mineable.
         campaign_data = {
             "id": "campaign-1",
             "name": "Test Campaign",
@@ -121,7 +123,7 @@ class TestBenefitFilter(unittest.TestCase):
 
         campaign = DropsCampaign(MagicMock(), campaign_data, {})
 
-        self.assertFalse(campaign.linked)
+        self.assertTrue(campaign.linked)
 
 
 if __name__ == "__main__":
