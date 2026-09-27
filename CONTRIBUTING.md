@@ -36,6 +36,12 @@ The current scope excludes multiple accounts, channel-points mining, unlinked
 campaign mining, and a desktop GUI. Discuss proposed scope changes before implementing
 them; opening a feature request does not itself approve a change in scope.
 
+This is a hobby project for personal use on your own hardware and home network.
+Support is best-effort and limited to that setup. VPS, cloud, other third-party hosting
+environments, and services operated for other users are outside the support scope.
+Keep bug reports and proposals within this scope; deployment-specific workarounds for
+unsupported hosting environments are not a project maintenance commitment.
+
 ## Raising an issue
 
 Search [existing issues](https://github.com/rangermix/TwitchDropsMiner/issues) and
@@ -298,6 +304,25 @@ is updated automatically after merge; preserve the README contributor table and 
 Release automation updates `src/version.py`, `pyproject.toml`, and `uv.lock` together.
 Do not publish releases, change workflow trust boundaries, or bypass required checks as
 part of an ordinary contribution.
+
+### Native helper releases
+
+The existing **Create Version Release** workflow remains the versioned release entry
+point. Its release branch triggers Docker publication, then **GitHub Release** verifies
+the existing version tag and builds helpers from that exact commit. GitHub publication
+waits for Linux x64, Windows x64, macOS ARM64 and macOS x64 builds, their packaged Chrome
+smoke checks, and archive validation. It uploads four versioned `.tar.gz` archives and
+`SHA256SUMS` to a draft, verifies their remote digests, then publishes. Failed uploads
+leave a draft that can be retried; a rerun refuses to modify an already-published release.
+Binaries are unsigned. Each archive contains only the executable and license.
+
+PR/main validation calls the same read-only native workflow and prepares the same asset
+set without publishing. Keep the publishing token out of build jobs, retain the exact-tag
+guard, and never substitute artifacts from a different run or revision. The release
+contract tests exercise missing/unsafe archives, checksums, source/tag mismatches,
+failed uploads, incomplete remote assets, draft recovery and published reruns.
+Merging a change does not publish a new version or satisfy the frontend cache-key bump;
+dispatch the version workflow only when the maintainer authorizes a versioned release.
 
 ## Additional requirements for coding agents
 
