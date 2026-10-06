@@ -13,9 +13,13 @@ import aiohttp
 
 from src.api import GQLClient, HTTPClient
 from src.auth import _AuthState
+from src.auth.container_login import ContainerLogin
 from src.auth.helper_connection import HelperConnections
 from src.auth.imported_session import ImportedSession, SessionTransport
+from src.auth.session_bundle import SessionError
+from src.auth.session_controller import SessionController
 from src.config import (
+    COOKIES_PATH,
     MAX_CHANNELS,
     ClientType,
     State,
@@ -109,14 +113,55 @@ class Twitch:
         self._resume_mining = asyncio.Event()
         self._resume_mining.set()
         self._changing_auth = False
-        self.helper = HelperConnections(
-            self._browser, settings, activation=self.authentication_change,
-            on_change=self._helper_changed,
+        self.session_controller = SessionController(
+            self._browser, activation=self.authentication_change,
+            on_change=self._session_changed,
         )
+        self.login_browser = ContainerLogin(self.session_controller, on_change=self._session_changed)
+        self.helper = HelperConnections(self.session_controller, on_change=self._session_changed)
+        self._logout_lock = asyncio.Lock()
 
-    def _helper_changed(self) -> None:
+    def _session_changed(self) -> None:
+        self.login_browser.session_changed()
+        self.helper.session_changed()
         if self.gui is not None:
-            self.gui.notify_helper_change(self.helper.status())
+            self.gui.notify_session_change()
+
+    def request_login(self) -> None:
+        if not self.helper.selected:
+            self.login_browser.request_login()
+
+    async def enable_helper(self, authorized) -> None:
+        async with self._logout_lock:
+            if self._auth_state._logged_in.is_set():
+                raise SessionError("HELPER_STATE")
+            await self.helper.cancel()
+            await self.login_browser.cancel()
+            self.helper.enable(authorized)
+
+    async def cancel_helper(self) -> None:
+        async with self._logout_lock:
+            await self.helper.cancel()
+            if not self._auth_state._logged_in.is_set() and self._browser.status()["state"] != "ready":
+                self.login_browser.request_login()
+
+    async def logout(self) -> None:
+        async with self._logout_lock:
+            await self.helper.cancel()
+            await self.login_browser.cancel()
+
+            async def clear_cookies() -> None:
+                session = await self.get_session()
+                session.cookie_jar.clear()
+                COOKIES_PATH.unlink(missing_ok=True)
+
+            try:
+                await self.session_controller.logout(clear_cookies)
+            finally:
+                # A persisted logout wins even if deleting legacy cookies failed.
+                if self._browser.logged_out:
+                    self.gui.login.update(_.t["login"]["status"]["logged_out"], None)
+                    self.login_browser.request_login()
 
     @asynccontextmanager
     async def authentication_change(self):
@@ -132,6 +177,7 @@ class Twitch:
             self._watching_task = self._mnt_task = None
             await self.websocket.stop(clear_topics=True)
             await self._stop_channel_tasks()
+            await self.gui.login.stop_avatar()
             yield
         finally:
             self._auth_state.clear()
@@ -179,6 +225,8 @@ class Twitch:
     async def shutdown(self) -> None:
         start_time = time()
         await self.helper.stop()
+        await self.login_browser.stop()
+        await self.session_controller.stop()
         self.stop_watching()
         if self._watching_task is not None:
             self._watching_task.cancel()
@@ -189,6 +237,7 @@ class Twitch:
         # stop websocket and close HTTP session
         await self.websocket.stop(clear_topics=True)
         await self._stop_channel_tasks()
+        await self.gui.login.stop_avatar()
         if self._browser is not None:
             await self._browser.close()
         if self._http_client is not None:
@@ -284,7 +333,7 @@ class Twitch:
 
     async def run(self) -> None:
         """Main entry point for the miner - handles exit requests."""
-        self.helper.start()
+        self.session_controller.start()
         try:
             while self._state is not State.EXIT:
                 await self._resume_mining.wait()
@@ -304,7 +353,9 @@ class Twitch:
                 except aiohttp.ContentTypeError as exc:
                     raise RequestException(_.t["login"]["unexpected_content"]) from exc
         finally:
+            await self.login_browser.stop()
             await self.helper.stop()
+            await self.session_controller.stop()
 
     async def _run(self) -> None:
         """

@@ -64,36 +64,41 @@ class GUITabs(TypedDict):
     help: str
 
 
-class GUIHelperLogin(TypedDict):
-    step_download: str
-    step_instance: str
-    step_chrome: str
-    step_finish: str
-    builds: str
-    builds_note: str
-    instance: str
-    copy: str
-    copied: str
-    copy_manually: str
+class GUIBrowserLogin(TypedDict):
+    title: str
+    instructions: str
+    finish: str
     retry: str
-    settings_title: str
-    allow: str
-    setting_help: str
-    saving: str
-    save_error: str
-    open: str
-    closed: str
-    checking: str
-    ready: str
-    waiting: str
-    expired: str
-    session_error: str
-    status_error: str
-    existing: str
-    renewal: str
-    renewal_error: str
-    renewal_unavailable: str
-    renewal_retrying: str
+    starting: str
+    sign_in: str
+    verifying: str
+    error: str
+    unavailable: str
+    viewer_closed: str
+    logout: str
+    logout_help: str
+    logout_confirm: str
+    logout_failed: str
+    action_failed: str
+    renewal_ready: str
+    renewal_retry: str
+    helper_title: str
+    helper_help: str
+    helper_downloads: str
+    helper_builds_note: str
+    helper_cancel: str
+    helper_instructions: str
+    helper_access_help: str
+    helper_url: str
+    helper_waiting: str
+    helper_connected: str
+    helper_verifying: str
+    helper_error: str
+    helper_expired: str
+    helper_windows: str
+    helper_linux: str
+    helper_macos_arm: str
+    helper_macos_intel: str
 
 
 class GUILoginForm(TypedDict):
@@ -127,6 +132,11 @@ class GUIProgress(TypedDict):
 
 class GUIChannels(TypedDict):
     name: str
+    now_watching: str
+    show_preview: str
+    hide_preview: str
+    preview_off: str
+    preview_help: str
     online: str
     pending: str
     offline: str
@@ -341,7 +351,7 @@ class GUIMessages(TypedDict):
     status: GUIStatus
     tabs: GUITabs
     login: GUILoginForm
-    helper_login: GUIHelperLogin
+    browser_login: GUIBrowserLogin
     websocket: GUIWebsocket
     progress: GUIProgress
     channels: GUIChannels
